@@ -1,0 +1,84 @@
+#!python
+import csv
+import fileinput
+import sys
+import getopt
+
+helpMessage=(
+        "Usage csv-filter -[GLEOc] [INPUT_FILE]\n"
+        "\n"
+        "-c n    Column to check\n"
+        "-G n    Value must be greater than n.\n"
+        "-L n    Value must be less that n.\n"
+        "-E n    Value must be equal to n.\n"
+        "-O      Handle conditions as disjunction.\n"
+        "-s n    Skip first n lines."
+)
+
+
+upperLimit = None
+lowerLimit = None
+equalValue = None
+col = 0
+disjunct = False
+skip = 0
+def main(argv):
+    global upperLimit
+    global lowerLimit
+    global col
+    global equalValue
+    global disjunct
+    global skip
+    
+    optlist, args = getopt.getopt(argv, 'G:L:E:Oc:s:')
+    for opt in optlist:
+        if opt[0] == '-L':
+            upperLimit = float(opt[1])
+        elif opt[0] == '-G':
+            lowerLimit = float(opt[1])
+        elif opt[0] == '-c':
+            col = int(opt[1])
+        elif opt[0] == '-E':
+            equalValue = opt[1]
+        elif opt[0] == "-O":
+            disjunct = True
+        elif opt[0] == "-s":
+            skip = int(opt[1])
+        else:
+            print(helpMessage)
+            exit(1)
+    
+    source = fileinput.input(args[0]) if len(args) else sys.stdin
+    for line in source:
+        if skip > 0:
+            skip -= 1
+            continue
+        fields=list(csv.reader([line]))[0]
+        if check(fields):
+            print(line, end='')
+
+def check(fields):
+    global upperLimit
+    global lowerLimit
+    global col
+    global equalValue
+    global disjunct
+    if disjunct:
+        if (upperLimit and upperLimit > float(fields[col])):
+            return True
+        if (lowerLimit and lowerLimit < float(fields[col])):
+            return True
+        if (equalValue and equalValue == fields[col]):
+            return True
+        return False
+    else:
+        if upperLimit and not upperLimit > float(fields[col]):
+            return False
+        if lowerLimit and not lowerLimit < float(fields[col]):
+            return False
+        if equalValue and not equalValue == fields[col]:
+            return False
+    return True
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
