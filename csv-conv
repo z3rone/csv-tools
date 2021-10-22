@@ -1,0 +1,77 @@
+#!python
+import csv
+import fileinput
+import sys
+import getopt
+import time
+import datetime
+
+helpMessage=(
+		"Usage csv-conv -[DTKc] [INPUT_FILE]\n"
+		"\n"
+		"-D n    Convert to decimal from base n.\n"
+		"-c n    Convert column n.\n"
+		"-K n    Skip n columns.\n"
+		"-T str  Convert to decimal timestamp from format str."
+)
+
+
+timeFormat = None
+base = None
+col = 0
+skip = 0
+
+def main(argv):
+	global col
+	global skip
+	global base
+	global timeFormat
+	
+	optlist, args = getopt.getopt(argv, 'D:c:K:T:')
+	for opt in optlist:
+		if opt[0] == '-D':
+			base = int(opt[1])
+		elif opt[0] == '-c':
+			col = int(opt[1])-1
+		elif opt[0] == '-K':
+			skip = int(opt[1])
+		elif opt[0] == '-T':
+			timeFormat = opt[1]
+		else:
+			print(helpMessage)
+			exit(1)
+	
+	source = fileinput.input(args[0]) if len(args) else sys.stdin
+	writer = csv.writer(sys.stdout, delimiter=',',
+                            quotechar='"', quoting=csv.QUOTE_MINIMAL)
+	for line in source:
+		if skip > 0:
+			print(line, end='')
+			skip -= 1
+			continue
+		fields=list(csv.reader([line]))[0]
+		writer.writerow(conv(fields))
+
+def conv(fields):
+	global col
+	global skip
+	global base
+	global timeFormat
+	
+	if timeFormat:
+		time = datetime.datetime.strptime(fields[col], timeFormat)
+		fields[col]  = time.hour
+		fields[col] *= 60
+		fields[col] += time.minute
+		fields[col] *= 60
+		fields[col] += time.second
+		fields[col] *= 1000*1000
+		fields[col] += time.microsecond
+	if base:
+		fields[col] = int(fields[col], base)
+	return fields
+	
+	
+
+if __name__ == "__main__":
+	main(sys.argv[1:])
