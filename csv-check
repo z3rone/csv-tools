@@ -1,0 +1,144 @@
+#!python
+import csv
+import fileinput
+import sys
+import getopt
+
+helpMessage=(
+        "Usage csv-filter -[GLOAaDdcn] [INPUT_FILE]\n"
+        "\n"
+        "-c n    Column to check\n"
+        "-G n    Value must be greater than n.\n"
+        "-L n    Value must be less that n.\n"
+        "-A      Strongly acending.\n"
+        "-a n    Ascending with a tolerance of n.\n"
+        "-D      Strongly descending.\n"
+        "-d n    Descending with a tolerance of n.\n"
+        "-O      Handle conditions as disjunction.\n"
+        "-K n    Skip first n lines."
+)
+
+
+upperLimit = None
+lowerLimit = None
+ascTolerance = None
+descTolerance = None
+col = 0
+disjunct = False
+skip = 0
+
+prevLine = None
+
+def main(argv):
+	global upperLimit
+	global lowerLimit
+	global col
+	global disjunct
+	global skip
+	global ascTolerance
+	global descTolerance
+	
+	global prevLine
+	
+	hexMode = False
+	
+	upperLimitStr = None
+	lowerLimitStr = None
+	ascToleranceStr = None
+	descToleranceStr = None
+	
+	optlist, args = getopt.getopt(argv, 'G:L:Oc:K:hAa:Dd:HC')
+	for opt in optlist:
+		if opt[0] == '-L':
+			upperLimitStr = opt[1]
+		elif opt[0] == '-G':
+			lowerLimitStr = opt[1]
+		elif opt[0] == '-c':
+			col = int(opt[1])-1
+		elif opt[0] == "-O":
+			disjunct = True
+		elif opt[0] == "-K":
+			skipStr = int(opt[1])
+		elif opt[0] == "-D":
+			descToleranceStr = "-1"
+		elif opt[0] == "-d":
+			descToleranceStr = opt[1]
+		elif opt[0] == "-A":
+			ascToleranceStr = "-1"
+		elif opt[0] == "-a":
+			ascToleranceStr = opt[1]
+		elif opt[0] == "-C":
+			# Constant
+			ascToleranceStr = "0"
+			descToleranceStr = "0"
+		elif len(args):
+			print("No file passed.")
+			exit(1)
+		else:
+			print(helpMessage)
+			exit(1)
+	
+	# Convert opt strings to values
+	if hexMode:
+		upperLimit = int(upperLimitStr, 16)
+		lowerLimit = int(lowerLimitStr, 16)
+		ascTolerance  = int(ascToleranceStr, 16)
+		descTolerance = int(descToleranceStr, 16)
+	else:
+		upperLimit = float(upperLimitStr) if upperLimitStr else 0
+		lowerLimit = float(lowerLimitStr) if lowerLimitStr else 0
+		ascTolerance  = float(ascToleranceStr) if ascToleranceStr else 0
+		descTolerance = float(descToleranceStr) if descToleranceStr else 0
+	
+	for path in args[0]:
+		valid = True
+		source = fileinput.input(path)
+		tmpSkip = skip
+		for line in source:
+			if tmpSkip > 0:
+				tmpSkip -= 1
+				continue
+			fields=list(csv.reader([line]))[0]
+			if not check(fields):
+				valid = False
+				break
+			prevLine = line
+		if valid:
+			print(path)
+
+def check(fields):
+	global upperLimit
+	global lowerLimit
+	global col
+	global disjunct
+	global ascTolerance
+	global descTolerance
+	global prevLine
+	
+	if disjunct:
+		if (upperLimit and upperLimit > float(fields[col])):
+			return True
+		if (lowerLimit and lowerLimit < float(fields[col])):
+			return True
+		return False
+	else:
+		if upperLimit and not upperLimit > float(fields[col]):
+			return False
+		if lowerLimit and not lowerLimit < float(fields[col]):
+			return False
+		if equalValue and not equalValue == fields[col]:
+			return False
+		if ascTolerance:
+			if ascTolerance == -1 and prevLine[col] <= float(fields[col]):
+				return False
+			elif prevLine[col] < float(fields[col]) + ascTolerance:
+				return False
+		if descTolerance:
+			if descTolerance == -1 and prevLine[col] >= float(fields[col]):
+				return False
+			elif prevLine[col] > float(fields[col]) - descTolerance:
+				return False
+	return True
+
+if __name__ == "__main__":
+	main(sys.argv[1:])
