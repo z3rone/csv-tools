@@ -32,12 +32,12 @@ skip = 0
 prevLine = None
 
 def main(argv):
-    global upperLimit
-    global lowerLimit
-    global col
-    global equalValue
-    global disjunct
-    global skip
+	global upperLimit
+	global lowerLimit
+	global col
+	global equalValue
+	global disjunct
+	global skip
 	global ascTolerance
 	global descTolerance
 	
@@ -47,24 +47,23 @@ def main(argv):
 	
 	upperLimitStr = None
 	lowerLimitStr = None
-	equalValueStr = None
 	ascToleranceStr = None
 	descToleranceStr = None
-    
-    optlist, args = getopt.getopt(argv, 'G:L:E:Oc:K:hAa:Dd:HC')
-    for opt in optlist:
-        if opt[0] == '-L':
-            upperLimitStr = opt[1]
-        elif opt[0] == '-G':
-            lowerLimitStr = opt[1]
-        elif opt[0] == '-c':
-            col = int(opt[1])-1
-        elif opt[0] == '-E':
-            equalValueStr = opt[1]
-        elif opt[0] == "-O":
-            disjunct = True
-        elif opt[0] == "-K":
-            skipStr = int(opt[1])
+	
+	optlist, args = getopt.getopt(argv, 'G:L:E:Oc:K:hAa:Dd:HC')
+	for opt in optlist:
+		if opt[0] == '-L':
+			upperLimitStr = opt[1]
+		elif opt[0] == '-G':
+			lowerLimitStr = opt[1]
+		elif opt[0] == '-c':
+			col = int(opt[1])-1
+		elif opt[0] == '-E':
+			equalValue = opt[1]
+		elif opt[0] == "-O":
+			disjunct = True
+		elif opt[0] == "-K":
+			skipStr = int(opt[1])
 		elif opt[0] == "-D":
 			descToleranceStr = "-1"
 		elif opt[0] == "-d":
@@ -77,59 +76,57 @@ def main(argv):
 			# Constant
 			ascToleranceStr = "0"
 			descToleranceStr = "0"
-        else:
-            print(helpMessage)
-            exit(1)
+		else:
+			print(helpMessage)
+			exit(1)
 	
 	# Convert opt strings to values
 	if hexMode:
 		upperLimit = int(upperLimitStr, 16)
 		lowerLimit = int(lowerLimitStr, 16)
-		equalValue = int(equalValueStr, 16)
 		ascTolerance  = int(ascToleranceStr, 16)
 		descTolerance = int(descToleranceStr, 16)
 	else:
-		upperLimit = float(upperLimitStr)
-		lowerLimit = float(lowerLimitStr)
-		equalValue = float(equalValueStr)
-		ascTolerance  = float(ascToleranceStr)
-		descTolerance = float(descToleranceStr)
-    
-    source = fileinput.input(args[0]) if len(args) else sys.stdin
-    for line in source:
-        if skip > 0:
-            skip -= 1
-            continue
-        fields=list(csv.reader([line]))[0]
-        if check(fields):
-            print(line, end='')
+		upperLimit = float(upperLimitStr) if upperLimitStr else 0
+		lowerLimit = float(lowerLimitStr) if lowerLimitStr else 0
+		ascTolerance  = float(ascToleranceStr) if ascToleranceStr else 0
+		descTolerance = float(descToleranceStr) if descToleranceStr else 0
+	
+	source = fileinput.input(args[0]) if len(args) else sys.stdin
+	for line in source:
+		if skip > 0:
+			skip -= 1
+			continue
+		fields=list(csv.reader([line]))[0]
+		if check(fields):
+			print(line, end='')
 		prevLine = line
 
 def check(fields):
-    global upperLimit
-    global lowerLimit
-    global col
-    global equalValue
-    global disjunct
+	global upperLimit
+	global lowerLimit
+	global col
+	global equalValue
+	global disjunct
 	global ascTolerance
 	global descTolerance
 	global prevLine
 	
-    if disjunct:
-        if (upperLimit and upperLimit > float(fields[col])):
-            return True
-        if (lowerLimit and lowerLimit < float(fields[col])):
-            return True
-        if (equalValue and equalValue == fields[col]):
-            return True
-        return False
-    else:
-        if upperLimit and not upperLimit > float(fields[col]):
-            return False
-        if lowerLimit and not lowerLimit < float(fields[col]):
-            return False
-        if equalValue and not equalValue == fields[col]:
-            return False
+	if disjunct:
+		if (upperLimit and upperLimit > float(fields[col])):
+			return True
+		if (lowerLimit and lowerLimit < float(fields[col])):
+			return True
+		if (equalValue and equalValue == fields[col]):
+			return True
+		return False
+	else:
+		if upperLimit and not upperLimit > float(fields[col]):
+			return False
+		if lowerLimit and not lowerLimit < float(fields[col]):
+			return False
+		if equalValue and not equalValue == fields[col]:
+			return False
 		if ascTolerance:
 			if ascTolerance == -1 and prevLine[col] <= float(fields[col]):
 				return False
@@ -140,7 +137,7 @@ def check(fields):
 				return False
 			elif prevLine[col] > float(fields[col]) - descTolerance:
 				return False
-    return True
+	return True
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+	main(sys.argv[1:])
