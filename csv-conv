@@ -5,6 +5,7 @@ import sys
 import getopt
 import time
 import datetime
+import os
 
 helpMessage=(
 		"Usage csv-conv -[DTKc] [INPUT_FILE]\n"
@@ -42,8 +43,8 @@ def main(argv):
 			exit(1)
 	
 	source = fileinput.input(args[0]) if len(args) else sys.stdin
-	writer = csv.writer(sys.stdout, delimiter=',',
-                            quotechar='"', quoting=csv.QUOTE_MINIMAL)
+	writer = csv.writer(sys.stdout, delimiter=',', lineterminator='\n',
+							quotechar='"', quoting=csv.QUOTE_MINIMAL)
 	for line in source:
 		if skip > 0:
 			print(line, end='')
@@ -68,7 +69,10 @@ def conv(fields):
 		fields[col] *= 1000*1000
 		fields[col] += time.microsecond
 	if base:
-		fields[col] = int(fields[col], base)
+		if fields[col] == '':
+			fields[col] = 0
+		else:
+			fields[col] = int(fields[col], base)
 	return fields
 	
 	
