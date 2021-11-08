@@ -1,0 +1,85 @@
+#!python
+import csv
+import fileinput
+import sys
+import getopt
+from datetime import datetime
+from datetime import timedelta
+import time
+
+helpMessage=(
+        "Usage csv-replay -[shTcK] [INPUT_FILE]\n"
+        "\n"
+        "-c n    Column to read timestamp from.\n"
+        "-s t    Start timestamp.\n"
+        "-T fmt  Timestamp format.\n"
+        "-K n    Skip first n lines."
+)
+
+col = 0
+skip = 0
+startImdly = False
+timeFormat = None
+startTime = None
+
+
+def main(argv):
+	global col
+	global skip
+	global startImdly
+	global timeFormat
+	global startTime
+	
+	optlist, args = getopt.getopt(argv, 's:c:T:K:')
+	for opt in optlist:
+		if opt[0] == '-s':
+			startTime = datetime.strptime(opt[1], timeFormat)
+		elif opt[0] == '-c':
+			col = int(opt[1])-1
+		elif opt[0] == '-T':
+			timeFormat = opt[1]
+		elif opt[0] == "-K":
+			skip = int(opt[1])
+		else:
+			print(helpMessage)
+			exit(1)
+	
+	source = fileinput.input(args[0]) if len(args) else sys.stdin
+	for line in source:
+		if skip > 0:
+			skip -= 1
+			continue
+			
+		fields=list(csv.reader([line]))[0]
+		
+		lineTime = datetime.strptime(fields[col], timeFormat)
+		if startTime is None:
+			startTime = lineTime
+		relLineTime = lineTime - startTime
+		
+		wait = relLineTime - getRelTime()
+		while wait > timedelta(0):
+			time.sleep(wait.total_seconds())
+			wait = relLineTime - getRelTime()
+		
+		print(line, end='')
+
+
+def datetimeToMicrosec(dt):
+	time  = dt.hour
+	time *= 60
+	time += dt.minute
+	time *= 60
+	time += dt.second
+	time *= 1000*1000
+	time += dt.microsecond
+	return time
+
+absStartTime = datetime.now()
+def getRelTime():
+	global absStartTime
+	return datetime.now()-absStartTime
+	
+
+if __name__ == "__main__":
+	main(sys.argv[1:])
